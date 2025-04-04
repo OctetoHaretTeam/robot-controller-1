@@ -22,11 +22,12 @@ public class Drivetrain {
 
     HardwareMap hardwareMap;
     Gamepad gamepad1;
-
     Telemetry telemetry;
 
+    private static final double FRONT_POWER_COEFFICIENT = 0.8;
+
     public enum DriveMode {
-        ROBOT_CENTRIC, FIELD_CENTRIC
+        ROBOT_CENTRIC, FIELD_CENTRIC, FIELD_CENTRIC_POWER_ADJUSTED
     }
 
     DriveMode driveMode;
@@ -66,6 +67,8 @@ public class Drivetrain {
             robotCentricLoop();
         } else if(driveMode == DriveMode.FIELD_CENTRIC) {
             fieldCentricLoop();
+        } else if(driveMode == DriveMode.FIELD_CENTRIC_POWER_ADJUSTED){
+            fieldCentricPowerAdjustedLoop();
         }
     }
 
@@ -128,6 +131,63 @@ public class Drivetrain {
         telemetry.addData("Front Right Power", frontRightPower);
         telemetry.addData("Back Right Power", backRightPower);
         telemetry.addData("Heading", botHeading);
+        telemetry.update();
+    }
+
+    private void fieldCentricPowerAdjustedLoop() {
+        // Reset IMU yaw when the options button is pressed
+        if (gamepad1.options) {
+            imu.resetYaw();
+        }
+
+        // Get joystick inputs (y is negated due to inverted y-axis)
+        double y = -gamepad1.left_stick_y;  // Forward/backward
+        double x = gamepad1.left_stick_x * 1.1;  // Strafe with slight multiplier
+        double rx = gamepad1.right_stick_x;  // Rotation
+
+        // Get robot heading from IMU in radians
+        double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+
+        // Rotate joystick inputs for field-centric control
+        double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
+        double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
+
+        // Calculate base motor powers
+        double frontLeftBasePower = rotY + rotX + rx;
+        double backLeftBasePower = rotY - rotX + rx;
+        double frontRightBasePower = rotY - rotX - rx;
+        double backRightBasePower = rotY + rotX - rx;
+
+        // Apply power adjustment for front wheels due to rear-shifted center of mass
+        double frontLeftPower = frontLeftBasePower;
+        double frontRightPower = frontRightBasePower;
+        double backLeftPower = backLeftBasePower * FRONT_POWER_COEFFICIENT;  // Back wheels retain full power
+        double backRightPower = backRightBasePower * FRONT_POWER_COEFFICIENT;
+
+        // Normalize powers to ensure they stay within [-1, 1]
+        double maxPower = Math.max(
+                Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower)),
+                Math.max(Math.abs(backLeftPower), Math.abs(backRightPower))
+        );
+        double denominator = Math.max(maxPower, 1);  // Use max power instead of sum for simplicity
+        frontLeftPower /= denominator;
+        backLeftPower /= denominator;
+        frontRightPower /= denominator;
+        backRightPower /= denominator;
+
+        // Set motor powers
+        frontLeftMotor.setPower(frontLeftPower);
+        backLeftMotor.setPower(backLeftPower);
+        frontRightMotor.setPower(frontRightPower);
+        backRightMotor.setPower(backRightPower);
+
+        // Update telemetry for debugging
+        telemetry.addData("Front Left Power", frontLeftPower);
+        telemetry.addData("Back Left Power", backLeftPower);
+        telemetry.addData("Front Right Power", frontRightPower);
+        telemetry.addData("Back Right Power", backRightPower);
+        telemetry.addData("Heading", botHeading);
+        telemetry.addData("Front Power Coefficient", FRONT_POWER_COEFFICIENT);
         telemetry.update();
     }
 }
