@@ -16,6 +16,7 @@ public class ViperTestOp extends OpMode {
 //        viperRightMotor = hardwareMap.dcMotor.get("viper-right");
         viperLeftMotor = hardwareMap.dcMotor.get("viper-left");
 //        viperRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        viperLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
 //        viperRightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 //        viperRightMotor.setTargetPosition(0);
@@ -30,14 +31,20 @@ public class ViperTestOp extends OpMode {
     public void loop() {
         if (gamepad1.right_bumper) {
             double degreesToTicks = 537.7 / 360;
-            double targetAngle = 90;
+            double targetAngle = 2000;
             int targetPosition = (int) (targetAngle * degreesToTicks);
 
 //            viperRightMotor.setPower(0.7);
-            viperLeftMotor.setPower(0.7);
+            viperLeftMotor.setPower(1);
 //            viperRightMotor.setTargetPosition(targetPosition);
             viperLeftMotor.setTargetPosition(targetPosition);
-            telemetry.addData("Motor Position:", viperRightMotor.getCurrentPosition());
+//            telemetry.addData("Motor Position:", viperRightMotor.getCurrentPosition());
+            telemetry.addData("Motor Position Left:", viperLeftMotor.getCurrentPosition());
         }
+    }
+
+    @Override
+    public void stop() {
+        viperLeftMotor.setTargetPosition(0);
     }
 }

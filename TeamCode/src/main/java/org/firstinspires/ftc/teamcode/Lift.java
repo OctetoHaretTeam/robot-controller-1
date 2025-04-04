@@ -9,7 +9,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public class Lift {
 
     private DcMotor viperLeftMotor;
-    private DcMotor viperRightMotor;
+//    private DcMotor viperRightMotor;
 
     HardwareMap hardwareMap;
     Gamepad gamepad2;
@@ -18,8 +18,8 @@ public class Lift {
     // Position variables for each state (in encoder ticks)
     private int basePosition = 0;
     private int highChamber1Position = 1000; // A little lower than mid height
-    private int highChamber2Position = 2000; // Mid height
-    private int fullyExtendedPosition = 3000; // Full height
+    private int highChamber2Position = 1500; // Mid height
+    private int fullyExtendedPosition = 2160; // Full height
 
     private States currentState = States.BASE;
 
@@ -42,13 +42,14 @@ public class Lift {
 
     public void init() {
         viperLeftMotor = hardwareMap.dcMotor.get("viper-left");
-        viperRightMotor = hardwareMap.dcMotor.get("viper-right");
+//        viperRightMotor = hardwareMap.dcMotor.get("viper-right");
 
-        viperRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        viperLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+//        viperRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        viperRightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        viperRightMotor.setTargetPosition(0);
-        viperRightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+//        viperRightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+//        viperRightMotor.setTargetPosition(0);
+//        viperRightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         viperLeftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         viperLeftMotor.setTargetPosition(0);
@@ -56,7 +57,7 @@ public class Lift {
 
         // Set initial power to 0 to prevent movement until commanded
         viperLeftMotor.setPower(0);
-        viperRightMotor.setPower(0);
+//        viperRightMotor.setPower(0);
     }
 
     public void loop() {
@@ -74,7 +75,10 @@ public class Lift {
         prevDpadUp = dpadUp;
 
         // Only process inputs if motors are not transitioning
-        if (!viperLeftMotor.isBusy() && !viperRightMotor.isBusy()) {
+        if (!viperLeftMotor.isBusy()
+//                &&
+//                !viperRightMotor.isBusy()
+        ) {
             States newState = currentState;
 
             // Check for special transitions with L1 (left bumper)
@@ -99,26 +103,34 @@ public class Lift {
                 currentState = newState;
                 int targetPosition = getPositionForState(currentState);
                 viperLeftMotor.setTargetPosition(targetPosition);
-                viperRightMotor.setTargetPosition(targetPosition);
+//                viperRightMotor.setTargetPosition(targetPosition);
                 viperLeftMotor.setPower(1.0);
-                viperRightMotor.setPower(1.0);
+//                viperRightMotor.setPower(1.0);
             }
         }
     }
 
     // Helper method to map states to their respective positions
     private int getPositionForState(States state) {
+        double degreesToTicks = 537.7 / 360;
+        int targetAngleInDegrees;
         switch (state) {
             case BASE:
-                return basePosition;
+                targetAngleInDegrees = basePosition;
+                break;
             case HIGH_CHAMBER_1:
-                return highChamber1Position;
+                targetAngleInDegrees = highChamber1Position;
+                break;
             case HIGH_CHAMBER_2:
-                return highChamber2Position;
+                targetAngleInDegrees = highChamber2Position;
+                break;
             case FULLY_EXTENDED:
-                return fullyExtendedPosition;
+                targetAngleInDegrees = fullyExtendedPosition;
+                break;
             default:
-                return 0; // Fallback to base position
+                targetAngleInDegrees = 0;
+                break;// Fallback to base position
         }
+        return (int)(targetAngleInDegrees * degreesToTicks);
     }
 }
